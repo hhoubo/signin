@@ -2,15 +2,13 @@ import argparse
 import datetime
 import json
 import logging
-
 import requests
-
 import request_helper
 
-FORMAT = '%(asctime)s  %(message)s'
-logging.basicConfig(filename='holiday.log', level=logging.INFO, format=FORMAT)
+
 t = datetime.date.today()
 today = t.strftime('%Y-%m-%d')
+logger = logging.getLogger(__name__)
 
 
 def get(date):
@@ -21,7 +19,7 @@ def get(date):
     if response.ok:
         res = response.json()
         for item in res:
-            logging.debug(item + ': ' + str(res[item]))
+            logger.debug(item + ': ' + str(res[item]))
         if res['Count'] == 1:
             return True
         else:
@@ -42,14 +40,14 @@ def get_all():
 
 def post(date):
     json_data = '"' + date + '"'
-    logging.debug("json_data: %s ", json_data)
+    logger.debug("json_data: %s ", json_data)
     endpoint = request_helper.make_endpoint("")
     headers = request_helper.make_headers("POST", json_data, "")
     response = requests.post(endpoint, data=json_data, headers=headers)
     if response.ok:
-        logging.info("The day %s is a holiday now.", date)
+        logger.info("The day %s is a holiday now.", date)
     else:
-        logging.info("Set holiday failure." + response.text)
+        logger.info("Set holiday failure." + response.text)
 
 
 def delete(date):
@@ -58,9 +56,9 @@ def delete(date):
     headers = request_helper.make_headers("DELETE", json_data, "")
     response = requests.delete(endpoint, data=json_data, headers=headers)
     if response.ok:
-        logging.info("The day %s is not a holiday anymore.", date)
+        logger.info("The day %s is not a holiday anymore.", date)
     else:
-        logging.info("Revert holiday failure." + response.text)
+        logger.info("Revert holiday failure." + response.text)
 
 
 def run():
@@ -73,7 +71,9 @@ def run():
     args = parser.parse_args()
 
     if args.all is not None:
-        logging.info(json.dumps(get_all(), sort_keys=True, indent=4, separators=(',', ': ')))
+        holiday_list = json.dumps(get_all(), sort_keys=True, indent=4, separators=(',', ': ')) 
+        logger.info(holiday_list)
+        return holiday_list
     elif args.post is not None:
         # TODO check date format
         post(args.post)
@@ -82,7 +82,10 @@ def run():
         delete(args.delete)
     else:
         info = get(args.date)
-        logging.info("The day %s is holiday: %s", args.date, info)
+        logger.info("The day %s is holiday: %s", args.date, info)
+        return info
 
 if __name__ == "__main__":
+    FORMAT = '%(asctime)s  %(message)s'
+    logging.basicConfig(filename='./holiday.log', level=logging.INFO, format=FORMAT)
     run()
